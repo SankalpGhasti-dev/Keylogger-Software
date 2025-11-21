@@ -1,0 +1,1 @@
+[Fri Nov 21 23:14:51 2025] Input: this is an software which records our msgs in an txt file. 
