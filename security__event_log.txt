@@ -1,0 +1,31 @@
+[Wed Apr 15 12:59:46 2026] Input: jiohotstart
+[Wed Apr 15 12:59:52 2026] [ALERT] Sensitive input detected
+[Wed Apr 15 13:00:11 2026] [ALERT] Sensitive input detected
+[Wed Apr 15 13:18:51 2026] Input:  ffw
+[Wed Apr 15 13:31:42 2026] Input: 'cmahafyjcadmissions.in
+[Wed Apr 15 13:47:40 2026] Input:  f   8007841434f0938021suvarnashamraoshamrashamraosanjyotighasti@gmail.comreoicwyv
+[Wed Apr 15 13:57:19 2026] Input: l4ht6sf093801s07841434cvcv0at5issa8007841434vvj8cwwss8007841434cacvzlzjxscv
+[Wed Apr 15 14:04:17 2026] Input: fo093801suvarnasanjyotighasti@gmail.com8007841434shamraosanjyoti@23sanjyoti@23jlib6h f f 
+[Wed Apr 15 16:12:20 2026] Input:  f f                       ch
+[Wed Apr 15 16:13:39 2026] Input: com
+[Wed Apr 15 16:14:54 2026] Input: ii  hhaavvee  ttoo  mmssgg  mmyy  tteeaacchheerr  kkii  mmuujjhhee  bbuukkhhaarr  hhaaii  ttoo  mmaaii  gghhaarr  aaaayyaa  hhuu  iisslliiyyee  mmaaii  22--33  ddaayyss  ccoolllleeggee  nnaahhii  aaaavvuunnggaa..
+[Wed Apr 15 16:16:22 2026] Input: mmaarraatthhii  
+[Wed Apr 15 16:16:40 2026] Input: eenngglliisshh  mmaaiinn  bbuutt  mmaarraatthhii
+[Wed Apr 15 16:17:39 2026] Input: aaaa  rraahhaa  mmaarraatthhii  hhii  cchhaahhiiyyee  bbuutt  wwoorrddssttyyppiinngg  eenngglliisshh  mmaaii......  jjeessee  ttuu  bbuutt  iitt  iiss  yyoouu..
+[Wed Apr 15 16:37:09 2026] Input: ffccvv
+[Wed Apr 15 16:37:28 2026] Input: ssuummmmaarryy  aallll  tthhee  rreessoouurrcceess  hhee  ssuuggggeesstteedd  aallll  iinn  ddeettaaiill..
+[Wed Apr 15 16:39:15 2026] Input: ppoorrttwwiiggggeerr  aaccaa
+[Wed Apr 15 16:43:03 2026] Input: ssaannkkaallgghhaassttiissaannkkaallpp77@@ggmmaaiill..ccooccvvgghhaassttiissaannkkaallpp77@@ggmmaaiill..ccoommppoorrttvvppiiccoo  ccttff
+[Wed Apr 15 16:44:40 2026] Input: 2211wwhhaatt  iiss  tthhee  ppoossttaall  ccooddee  ooff  yyaaddrraavv  iicchhaallkkaarraannjjii  ??
+[Wed Apr 15 16:50:12 2026] Input: nnaahhmmaannsseecc
+[Wed Apr 15 16:58:07 2026] Input:       ccoo
+[Wed Apr 15 20:42:43 2026] Input:     ff    aaaabb  vvffffff        
+[Wed Apr 15 21:02:33 2026] Input:                           aannttii
+[Wed Apr 15 21:24:59 2026] Input: llhhooww  ttoo  uussee  oollllmmaa  iinn  wwiinnddoowwss??
+[Wed Apr 15 21:29:57 2026] Input: aaffhhooww  ccaann  ii  rruunn  ooppeennccllaaww  wwiitthhoouurr  ggiivviinngg  mmyy  oowwnn  mmaacchhiinnee  ffuullll  aacccceessss
+[Wed Apr 15 21:33:18 2026] Input: iitt  rruunnss  ppeerrffeecctt  ii  wwaannbbuutt  ii  wwaanntt  yyoouu  ttoo  ddoo  oonnee  mmoorree  wwoorrkk  ..  sseeee  wwhheenn  eevveerr  ii  rruunn  ssttrreeaammlliitt  iitt  ooppeennss  mmyy  bbrroowwsseerr  bbaasseedd  uuii  bbuutt  tthheerree  iiss  aann  ffllaaww  ..  aass  yyoouu  sseeee  iinn  aattttaacchheedd  iimmaaggee  tthhee  ttiittllee  iiss  ggeettttiinngg  hhiiddee  bbeeccaauussee  ooff  ssttrreeaammlliitt  hheeaaddeerr  bblloocckk..  aanndd  wwee  ccaann''tt  hhiiddee  tthhaatt  eennttiirree  bblloocckk  bbeeccaauussee  oouurr  ssiiddeebbaarr  aacccceessss  uubbttttoonn  iiss  tthheerree..  ssoo  iiwwaannttii  wwaanntt  yyoouu  ttoo  jjuusstt  sslliiddee  tthhee  ttiillee  aanndd  aallll  tthhiinnggss  bbeellooww  ..  aass  tthhee  ttiittllee  aanndd  llooggoo  sshhoouulldd  bbee  vviissiibbllee  ccrreessttaallccrryyssttaall  cclleeaarr..
+[Wed Apr 15 22:34:11 2026] Input: ccllvvvv44..sskk
+[Wed Apr 15 22:36:45 2026] Input: vvnneexxuuss
+[Wed Apr 15 22:39:48 2026] Input: vvfftthheerrmmeeii  wwaanntt  tthhee  tthhmmeemm  ttooggggllee  bbuuttttoonn  iinn  ttiittllee  hheeaaddeerr  bblloocckk  aatt  eennddccoorrnneerr  ooff  rriigghhtt  ssiiddee  ooff  wweebbssiittee..  bbuuttttoonn  sshhoouulldd  bbee  oonnllyy  oonnee..  aanndd  iitt  sshhoouulldd  bbee  lliikkee  tthhiiss  wweebbssiittaannootthheerr  wweebbssiittee  aattttaacchheedd  iinn  tthhaatt  iimmaaggee..  aanndd  rreemmoovvee  iitt  ffrroomm  tthhee  ssiiddeebbaarr..  
+[Wed Apr 15 22:42:35 2026] Input: ccoomm
+[Wed Apr 15 22:47:34 2026] Input: ii  tthhiinnkk  iitt  nnoott  iimmpplliimmeenntteedd  cchheecckk  oonnccee  aabboouutt  iitt..

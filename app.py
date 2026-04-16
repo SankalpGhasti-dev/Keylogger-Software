@@ -10,6 +10,7 @@ import time
 import threading
 from collections import Counter
 from datetime import datetime, timedelta
+import plotly.graph_objects as go
 
 # ─── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -29,6 +30,7 @@ for key, val in {
     if key not in st.session_state:
         st.session_state[key] = val
 
+
 # ─── Theme tokens ────────────────────────────────────────────────────────────
 THEMES = {
     "dark": {
@@ -36,6 +38,7 @@ THEMES = {
         "sidebar_bg":      "#080f1e",
         "panel_bg":        "rgba(10,20,40,0.85)",
         "panel_border":    "rgba(0,212,180,0.22)",
+        "panel_shadow":    "none",
         "accent":          "#00d4b4",
         "accent2":         "#3b82f6",
         "danger":          "#ef4444",
@@ -49,25 +52,37 @@ THEMES = {
         "row_critical":    "rgba(239,68,68,0.15)",
         "row_info":        "rgba(0,212,180,0.06)",
         "logo_glow":       "0 0 24px rgba(0,212,180,0.55)",
+        "threat_track":    "rgba(255,255,255,0.08)",
+        "textarea_bg":     "rgba(4,10,22,0.88)",
+        "textarea_color":  "#00d4b4",
+        "bg_overlay":      "radial-gradient(ellipse at 8% 5%, rgba(0,212,180,0.07) 0%, transparent 38%), radial-gradient(ellipse at 92% 8%, rgba(59,130,246,0.09) 0%, transparent 35%), radial-gradient(ellipse at 50% 95%, rgba(59,130,246,0.05) 0%, transparent 40%),",
+        "hover_glow":      "0 0 14px rgba(0,212,180,0.30)",
     },
     "light": {
-        "app_bg":          "#f0f4ff",
-        "sidebar_bg":      "#e8eeff",
-        "panel_bg":        "rgba(255,255,255,0.92)",
-        "panel_border":    "rgba(37,99,235,0.22)",
-        "accent":          "#0369a1",
-        "accent2":         "#2563eb",
-        "danger":          "#dc2626",
-        "warning":         "#d97706",
-        "success":         "#16a34a",
-        "text":            "#1e3050",
-        "text_dim":        "#64748b",
-        "text_head":       "#0f1e38",
-        "metric_val":      "#0369a1",
-        "chart_color":     "#2563eb",
-        "row_critical":    "rgba(220,38,38,0.10)",
-        "row_info":        "rgba(3,105,161,0.06)",
-        "logo_glow":       "0 0 22px rgba(37,99,235,0.30)",
+        # Soft gray-blue page, white card surfaces, navy-gray text
+        "app_bg":          "#F3F6FA",
+        "sidebar_bg":      "#E8EEF6",
+        "panel_bg":        "#FFFFFF",
+        "panel_border":    "#D7DFE8",
+        "panel_shadow":    "0 1px 3px rgba(15,30,60,0.06), 0 4px 12px rgba(15,30,60,0.04)",
+        "accent":          "#0284C7",      # sky-blue – single teal/blue accent
+        "accent2":         "#0369A1",
+        "danger":          "#DC2626",      # red – critical alerts only
+        "warning":         "#D97706",      # amber – warnings only
+        "success":         "#16A34A",
+        "text":            "#253040",      # dark navy-gray, not pure black
+        "text_dim":        "#8897A8",      # muted gray secondary text
+        "text_head":       "#0F1E32",      # near-black headings
+        "metric_val":      "#0284C7",
+        "chart_color":     "#0284C7",
+        "row_critical":    "rgba(220,38,38,0.07)",
+        "row_info":        "rgba(2,132,199,0.05)",
+        "logo_glow":       "0 0 18px rgba(2,132,199,0.22)",
+        "threat_track":    "rgba(15,30,60,0.08)",
+        "textarea_bg":     "#F8FAFB",
+        "textarea_color":  "#253040",
+        "bg_overlay":      "",             # no glow radials in light mode
+        "hover_glow":      "0 2px 8px rgba(2,132,199,0.20)",
     },
 }
 
@@ -84,22 +99,41 @@ html, body, [class*="css"] {{
 }}
 .stApp {{
     background:
-        radial-gradient(ellipse at 8%  5%,  rgba(0,212,180,0.07) 0%, transparent 38%),
-        radial-gradient(ellipse at 92% 8%,  rgba(59,130,246,0.09) 0%, transparent 35%),
-        radial-gradient(ellipse at 50% 95%, rgba(59,130,246,0.05) 0%, transparent 40%),
+        {t['bg_overlay']}
         {t['app_bg']};
     color: {t['text']};
 }}
+/* Hide Streamlit toolbar noise (keep native header visible) */
 #MainMenu {{ visibility: hidden; }}
 footer    {{ visibility: hidden; }}
-.block-container {{ padding: 2rem 1.6rem 2rem; }}
+[data-testid="stDeployButton"]    {{ display: none !important; }}
+[data-testid="stAppDeployButton"] {{ display: none !important; }}
+[data-testid="stHeaderActionElements"] {{ display: none !important; }}
+button[title="Deploy"] {{ display: none !important; }}
+[data-testid="stStatusWidget"]    {{ display: none !important; }}
+[data-testid="stToolbarActions"]  {{ display: none !important; }}
+.block-container {{ padding: 4.2rem 1.6rem 2rem; }}
 
 /* ── Sidebar ── */
 [data-testid="stSidebar"] {{
     background: {t['sidebar_bg']} !important;
-    border-right: 1px solid {t['panel_border']} !important;
+    border-right: 1px solid rgba(255,255,255,0.04) !important;
 }}
 [data-testid="stSidebar"] * {{ color: {t['text']} !important; }}
+[data-testid="stSidebar"] > div:first-child {{
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}}
+[data-testid="stSidebar"] > div:first-child::-webkit-scrollbar {{
+    width: 0 !important;
+    height: 0 !important;
+}}
+[data-testid="stSidebar"] > div:first-child::-webkit-scrollbar-track {{
+    background: transparent !important;
+}}
+[data-testid="stSidebar"] > div:first-child::-webkit-scrollbar-thumb {{
+    background: transparent !important;
+}}
 
 /* Style Streamlit's native collapse arrow to look like a teal pill */
 [data-testid="stSidebarCollapsedControl"] {{ 
@@ -124,6 +158,7 @@ h1, h2, h3, h4 {{ color: {t['text_head']} !important; font-weight: 700; }}
     border-radius: 14px;
     padding: 18px 20px 14px;
     margin-bottom: 16px;
+    box-shadow: {t['panel_shadow']};
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
 }}
@@ -151,6 +186,7 @@ h1, h2, h3, h4 {{ color: {t['text_head']} !important; font-weight: 700; }}
     text-align: left;
     position: relative;
     overflow: hidden;
+    box-shadow: {t['panel_shadow']};
 }}
 .kpi-tile::before {{
     content: '';
@@ -225,7 +261,7 @@ h1, h2, h3, h4 {{ color: {t['text_head']} !important; font-weight: 700; }}
 
 /* ── Threat level meter ── */
 .threat-bar-wrap {{
-    background: rgba(0,0,0,0.2);
+    background: {t['threat_track']};
     border-radius: 99px;
     height: 8px;
     overflow: hidden;
@@ -243,8 +279,8 @@ h1, h2, h3, h4 {{ color: {t['text_head']} !important; font-weight: 700; }}
 
 /* ── Log feed ── */
 .stTextArea textarea {{
-    background: rgba(4,10,22,0.88) !important;
-    color: #00d4b4 !important;
+    background: {t['textarea_bg']} !important;
+    color: {t['textarea_color']} !important;
     border: 1px solid {t['panel_border']} !important;
     border-radius: 10px !important;
     font-family: 'JetBrains Mono', monospace !important;
@@ -264,7 +300,7 @@ h1, h2, h3, h4 {{ color: {t['text_head']} !important; font-weight: 700; }}
 }}
 .stButton > button:hover {{
     border-color: {t['accent']};
-    box-shadow: 0 0 14px rgba(0,212,180,0.25);
+    box-shadow: {t['hover_glow']};
     transform: translateY(-1px);
 }}
 
@@ -315,6 +351,7 @@ h1, h2, h3, h4 {{ color: {t['text_head']} !important; font-weight: 700; }}
     border: 1px solid {t['panel_border']};
     border-radius: 12px;
     padding: 16px 18px;
+    box-shadow: {t['panel_shadow']};
 }}
 .aware-card h4 {{ margin: 0 0 10px; font-size: 0.92rem; }}
 .aware-card ul {{ margin: 0; padding-left: 16px; }}
@@ -354,57 +391,39 @@ h1, h2, h3, h4 {{ color: {t['text_head']} !important; font-weight: 700; }}
     overflow: hidden;
 }}
 
-/* ── Theme toggle pill ── */
-.theme-toggle-wrap {{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: {t['panel_bg']};
-    border: 1px solid {t['panel_border']};
-    border-radius: 999px;
-    padding: 4px 6px 4px 14px;
-    margin: 4px 0 0;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
+/* ── Header theme toggle button (circular icon pill, top-right) ── */
+/* Target by button key rendered as data-testid on the container */
+button[kind="secondary"][data-testid="stBaseButton-secondary"]#theme_btn,
+button[key="theme_btn"],
+[data-testid="stButton"] button {{}}
+
+/* Reliable: style the last column's button in the header row */
+.stMainBlockContainer .stColumns .stColumn:last-child .stButton > button {{
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    font-size: 1.2rem !important;
+    background: {t['panel_bg']} !important;
+    border: 1px solid {t['panel_border']} !important;
+    color: {t['text_head']} !important;
+    box-shadow: inset 0 0 0 1px {t['panel_border']};
+    transition: all 0.25s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    margin-top: 4px !important;
 }}
-.theme-toggle-wrap:hover {{
-    border-color: {t['accent']};
-    box-shadow: 0 0 12px rgba(0,212,180,0.2);
-}}
-.theme-toggle-label {{
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: {t['text_dim']};
-    letter-spacing: 0.5px;
-}}
-.theme-toggle-knob {{
-    width: 34px; height: 34px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.05rem;
-    background: rgba(0,212,180,0.15);
-    border: 1px solid rgba(0,212,180,0.3);
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-}}
-/* Collapse the "Toggle Theme" button into a slim invisible strip under the pill */
-[data-testid="stSidebar"] button[data-testid="baseButton-secondary"]:nth-of-type(6) {{
-    height: 24px !important;
-    min-height: 24px !important;
-    opacity: 0 !important;
-    border: none !important;
-    background: transparent !important;
-    margin: -6px 0 6px !important;
-    width: 100%;
-    cursor: pointer;
-    position: relative;
-    z-index: 10;
+.stMainBlockContainer .stColumns .stColumn:last-child .stButton > button:hover {{
+    border-color: {t['accent']} !important;
+    box-shadow: 0 0 18px rgba(0,212,180,0.40) !important;
+    transform: rotate(20deg) scale(1.1) !important;
+    background: rgba(0,212,180,0.13) !important;
 }}
 </style>
 """, unsafe_allow_html=True)
-
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
 def read_logs() -> str:
@@ -412,6 +431,58 @@ def read_logs() -> str:
         with open(kl_core.LOG_FILE, "r") as f:
             return f.read()
     return ""
+
+
+def chart_layout(title: str = "") -> dict:
+    """Return a Plotly layout dict themed to match the active dark/light mode."""
+    is_dark = st.session_state.theme == "dark"
+    if is_dark:
+        paper_bg  = "rgba(0,0,0,0)"          # transparent – panel_bg shows through
+        plot_bg   = "rgba(10,20,40,0.60)"
+        grid_col  = "rgba(255,255,255,0.07)"
+        axis_col  = "#5a7099"
+        font_col  = "#cdd9f5"
+        zero_col  = "rgba(255,255,255,0.12)"
+    else:
+        paper_bg  = "rgba(0,0,0,0)"          # transparent – white panel_bg shows
+        plot_bg   = "#FFFFFF"
+        grid_col  = "#DDE4EE"                 # soft gray-blue gridlines
+        axis_col  = "#8897A8"                 # muted secondary text
+        font_col  = "#253040"                 # dark navy-gray labels
+        zero_col  = "#BEC8D4"
+
+    return dict(
+        paper_bgcolor=paper_bg,
+        plot_bgcolor=plot_bg,
+        font=dict(family="Inter, sans-serif", color=font_col, size=11),
+        title=dict(text=title, font=dict(size=12, color=font_col)) if title else {},
+        margin=dict(l=8, r=8, t=8, b=8),
+        xaxis=dict(
+            gridcolor=grid_col,
+            linecolor=axis_col,
+            tickcolor=axis_col,
+            tickfont=dict(color=font_col, size=10),
+            zerolinecolor=zero_col,
+            showgrid=True,
+        ),
+        yaxis=dict(
+            gridcolor=grid_col,
+            linecolor=axis_col,
+            tickcolor=axis_col,
+            tickfont=dict(color=font_col, size=10),
+            zerolinecolor=zero_col,
+            showgrid=True,
+        ),
+        showlegend=False,
+        height=220,
+    )
+
+
+def hex_to_rgba(hex_color: str, alpha: float = 0.12) -> str:
+    """Convert a #RRGGBB hex string to rgba(r,g,b,alpha) for Plotly fillcolor."""
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
 
 
 def mask_sensitive(text: str) -> str:
@@ -472,7 +543,32 @@ def session_duration() -> str:
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
-# ─── Sidebar ────────────────────────────────────────────────────────────────
+# ─── Page header helper ─────────────────────────────────────────────────────
+def render_page_header(icon: str, title: str, subtitle: str):
+    """Header: [logo + title] | [theme toggle]"""
+    is_dark = st.session_state.theme == "dark"
+    theme_icon = "🌙" if is_dark else "☀️"
+    col_title, col_theme = st.columns([11, 1])
+
+    with col_title:
+        st.markdown(f"""
+        <div class="top-header">
+            <span class="logo-icon">{icon}</span>
+            <div>
+                <div class="product-name">{title}</div>
+                <div class="product-sub">{subtitle}</div>
+            </div>
+        </div>
+        <div class="divider"></div>
+        """, unsafe_allow_html=True)
+
+    with col_theme:
+        if st.button(theme_icon, key="theme_btn", help="Toggle Dark ↔ Light mode"):
+            st.session_state.theme = "light" if is_dark else "dark"
+            st.rerun()
+
+
+# ─── Sidebar ─────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
     <div style='text-align:center; padding: 10px 0 18px;'>
@@ -494,22 +590,6 @@ with st.sidebar:
         if st.button(label, key=f"nav_{key}"):
             st.session_state.page = key
             st.rerun()
-
-    st.markdown("---")
-    # Single pill toggle: clicking switches theme
-    is_dark = st.session_state.theme == "dark"
-    knob_icon = "🌙" if is_dark else "☀️"
-    toggle_label = "Dark Mode" if is_dark else "Light Mode"
-    st.markdown(f"""
-    <div class="theme-toggle-wrap" id="theme-toggle-pill" style="margin-bottom:4px;">
-        <span class="theme-toggle-label">{toggle_label}</span>
-        <span class="theme-toggle-knob">{knob_icon}</span>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button("Toggle Theme", key="theme_toggle_btn",
-                 help="Switch between Dark and Light mode"):
-        st.session_state.theme = "light" if is_dark else "dark"
-        st.rerun()
 
     st.markdown("---")
     st.markdown("**AGENT CONTROLS**")
@@ -570,15 +650,8 @@ if st.session_state.page == "dashboard":
     # Header
     status_dot  = "active" if st.session_state.running else "stopped"
     status_text = "Active Monitoring" if st.session_state.running else "Monitoring Stopped"
+    render_page_header("🛡️", "SecureWatch SOC", "Keystroke Threat Intelligence Platform")
     st.markdown(f"""
-    <div class="top-header">
-        <span class="logo-icon">🛡️</span>
-        <div>
-            <div class="product-name">SecureWatch SOC</div>
-            <div class="product-sub">Keystroke Threat Intelligence Platform</div>
-        </div>
-    </div>
-    <div class="divider"></div>
     <div class="status-bar">
         <span class="status-dot {status_dot}"></span>
         <span style="font-weight:600;">Agent Status:</span>&nbsp;{status_text}
@@ -654,7 +727,21 @@ if st.session_state.page == "dashboard":
                 hour_counter[row["timestamp"].strftime("%m-%d %H:00")] += 1
         trend_data = dict(sorted(hour_counter.items()))
         if trend_data:
-            st.line_chart(trend_data, color=t["chart_color"])
+            hours  = list(trend_data.keys())
+            counts = list(trend_data.values())
+            fig_trend = go.Figure(
+                go.Scatter(
+                    x=hours, y=counts,
+                    mode="lines+markers",
+                    line=dict(color=t["chart_color"], width=2.5, shape="spline", smoothing=1.1),
+                    marker=dict(size=5, color=t["chart_color"]),
+                    fill="tozeroy",
+                    fillcolor=hex_to_rgba(t["chart_color"], 0.12),
+                    hovertemplate="%{x}<br><b>%{y} events</b><extra></extra>",
+                )
+            )
+            fig_trend.update_layout(**chart_layout())
+            st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
         else:
             st.info("No timestamped events yet — start the monitor and press Enter to flush lines.")
         st.markdown("</div>", unsafe_allow_html=True)
@@ -664,13 +751,29 @@ if st.session_state.page == "dashboard":
     with col_a:
         st.markdown('<div class="soc-panel">', unsafe_allow_html=True)
         st.markdown('<div class="soc-panel-title">Severity Distribution</div>', unsafe_allow_html=True)
-        st.bar_chart({"Critical": sev_count.get("Critical", 0), "Info": sev_count.get("Info", 0)})
+        fig_sev = go.Figure(go.Bar(
+            x=["Critical", "Info"],
+            y=[sev_count.get("Critical", 0), sev_count.get("Info", 0)],
+            marker_color=[t["danger"], t["chart_color"]],
+            marker_line_width=0,
+            hovertemplate="%{x}: <b>%{y}</b><extra></extra>",
+        ))
+        fig_sev.update_layout(**chart_layout())
+        st.plotly_chart(fig_sev, use_container_width=True, config={"displayModeBar": False})
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col_b:
         st.markdown('<div class="soc-panel">', unsafe_allow_html=True)
         st.markdown('<div class="soc-panel-title">Triage Status Summary</div>', unsafe_allow_html=True)
-        st.bar_chart({"Open": sta_count.get("Open", 0), "Reviewed": sta_count.get("Reviewed", 0)})
+        fig_sta = go.Figure(go.Bar(
+            x=["Open", "Reviewed"],
+            y=[sta_count.get("Open", 0), sta_count.get("Reviewed", 0)],
+            marker_color=[t["warning"], t["success"]],
+            marker_line_width=0,
+            hovertemplate="%{x}: <b>%{y}</b><extra></extra>",
+        ))
+        fig_sta.update_layout(**chart_layout())
+        st.plotly_chart(fig_sta, use_container_width=True, config={"displayModeBar": False})
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Monitoring stats strip
@@ -695,16 +798,7 @@ if st.session_state.page == "dashboard":
 #  PAGE: EVENT QUEUE
 # ═══════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "events":
-    st.markdown(f"""
-    <div class="top-header">
-        <span class="logo-icon">📋</span>
-        <div>
-            <div class="product-name">Event Queue</div>
-            <div class="product-sub">Analyst Triage View — All Captured Events</div>
-        </div>
-    </div>
-    <div class="divider"></div>
-    """, unsafe_allow_html=True)
+    render_page_header("📋", "Event Queue", "Analyst Triage View — All Captured Events")
 
     st.markdown('<div class="soc-panel">', unsafe_allow_html=True)
     st.markdown('<div class="soc-panel-title">Filters</div>', unsafe_allow_html=True)
@@ -750,16 +844,7 @@ elif st.session_state.page == "events":
 #  PAGE: RAW LOG FEED
 # ═══════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "logs":
-    st.markdown(f"""
-    <div class="top-header">
-        <span class="logo-icon">📄</span>
-        <div>
-            <div class="product-name">Raw Log Feed</div>
-            <div class="product-sub">Live Keystroke Capture Stream — Sensitive Data Masked</div>
-        </div>
-    </div>
-    <div class="divider"></div>
-    """, unsafe_allow_html=True)
+    render_page_header("📄", "Raw Log Feed", "Live Keystroke Capture Stream — Sensitive Data Masked")
 
     masked = mask_sensitive(raw_logs)
     st.text_area("Live Log Stream", masked or "(No events captured yet)", height=480)
@@ -773,16 +858,7 @@ elif st.session_state.page == "logs":
 #  PAGE: THREAT AWARENESS
 # ═══════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "awareness":
-    st.markdown(f"""
-    <div class="top-header">
-        <span class="logo-icon">⚠️</span>
-        <div>
-            <div class="product-name">Threat Awareness</div>
-            <div class="product-sub">Cybersecurity Education & Responsible Disclosure</div>
-        </div>
-    </div>
-    <div class="divider"></div>
-    """, unsafe_allow_html=True)
+    render_page_header("⚠️", "Threat Awareness", "Cybersecurity Education & Responsible Disclosure")
 
     st.markdown(f"""
     <div style="text-align:center; margin-bottom:20px;">
