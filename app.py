@@ -1,5 +1,5 @@
 """
-Keylogger SOC Dashboard  –  app.py
+SecureWatch SOC — Threat Intelligence Console
 Educational / Lab Use Only
 """
 
@@ -12,163 +12,207 @@ from collections import Counter
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
 
-# ─── Page config ────────────────────────────────────────────────────────────
+# ─── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="SecureWatch SOC | Keystroke Threat Monitor",
+    page_title="SecureWatch SOC | Threat Intelligence Console",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# ─── Session defaults ────────────────────────────────────────────────────────
+# ─── Session defaults ─────────────────────────────────────────────────────────
 for key, val in {
     "running": False,
-    "theme": "dark",
     "session_start": None,
     "page": "dashboard",
 }.items():
     if key not in st.session_state:
         st.session_state[key] = val
 
-
-# ─── Theme tokens ────────────────────────────────────────────────────────────
-THEMES = {
-    "dark": {
-        "app_bg":          "#060d1a",
-        "sidebar_bg":      "#080f1e",
-        "panel_bg":        "rgba(10,20,40,0.85)",
-        "panel_border":    "rgba(0,212,180,0.22)",
-        "panel_shadow":    "none",
-        "accent":          "#00d4b4",
-        "accent2":         "#3b82f6",
-        "danger":          "#ef4444",
-        "warning":         "#f59e0b",
-        "success":         "#22c55e",
-        "text":            "#cdd9f5",
-        "text_dim":        "#5a7099",
-        "text_head":       "#e8f4ff",
-        "metric_val":      "#00d4b4",
-        "chart_color":     "#3b82f6",
-        "row_critical":    "rgba(239,68,68,0.15)",
-        "row_info":        "rgba(0,212,180,0.06)",
-        "logo_glow":       "0 0 24px rgba(0,212,180,0.55)",
-        "threat_track":    "rgba(255,255,255,0.08)",
-        "textarea_bg":     "rgba(4,10,22,0.88)",
-        "textarea_color":  "#00d4b4",
-        "bg_overlay":      "radial-gradient(ellipse at 8% 5%, rgba(0,212,180,0.07) 0%, transparent 38%), radial-gradient(ellipse at 92% 8%, rgba(59,130,246,0.09) 0%, transparent 35%), radial-gradient(ellipse at 50% 95%, rgba(59,130,246,0.05) 0%, transparent 40%),",
-        "hover_glow":      "0 0 14px rgba(0,212,180,0.30)",
-    },
-    "light": {
-        # Soft gray-blue page, white card surfaces, navy-gray text
-        "app_bg":          "#F3F6FA",
-        "sidebar_bg":      "#E8EEF6",
-        "panel_bg":        "#FFFFFF",
-        "panel_border":    "#D7DFE8",
-        "panel_shadow":    "0 1px 3px rgba(15,30,60,0.06), 0 4px 12px rgba(15,30,60,0.04)",
-        "accent":          "#0284C7",      # sky-blue – single teal/blue accent
-        "accent2":         "#0369A1",
-        "danger":          "#DC2626",      # red – critical alerts only
-        "warning":         "#D97706",      # amber – warnings only
-        "success":         "#16A34A",
-        "text":            "#253040",      # dark navy-gray, not pure black
-        "text_dim":        "#8897A8",      # muted gray secondary text
-        "text_head":       "#0F1E32",      # near-black headings
-        "metric_val":      "#0284C7",
-        "chart_color":     "#0284C7",
-        "row_critical":    "rgba(220,38,38,0.07)",
-        "row_info":        "rgba(2,132,199,0.05)",
-        "logo_glow":       "0 0 18px rgba(2,132,199,0.22)",
-        "threat_track":    "rgba(15,30,60,0.08)",
-        "textarea_bg":     "#F8FAFB",
-        "textarea_color":  "#253040",
-        "bg_overlay":      "",             # no glow radials in light mode
-        "hover_glow":      "0 2px 8px rgba(2,132,199,0.20)",
-    },
+# ─── Design tokens – dark only ────────────────────────────────────────────────
+C = {
+    "app_bg":      "#0D1117",
+    "sidebar_bg":  "#161B22",
+    "card_bg":     "#1C2333",
+    "card_alt":    "#21262D",
+    "border":      "#30363D",
+    "border_dim":  "#21262D",
+    "text":        "#E6EDF3",
+    "text_dim":    "#8B949E",
+    "text_head":   "#F0F6FF",
+    "critical":    "#F85149",
+    "warning":     "#D29922",
+    "info":        "#58A6FF",
+    "success":     "#3FB950",
+    "teal":        "#39D0B3",
+    "critical_bg": "rgba(248,81,73,0.10)",
+    "warning_bg":  "rgba(210,153,34,0.10)",
+    "info_bg":     "rgba(88,166,255,0.08)",
+    "success_bg":  "rgba(63,185,80,0.08)",
+    "teal_bg":     "rgba(57,208,179,0.08)",
+    "chart_bg":    "#161B22",
+    "grid":        "#21262D",
+    "shadow":      "0 4px 20px rgba(0,0,0,0.50)",
+    "shadow_sm":   "0 2px 8px rgba(0,0,0,0.30)",
 }
 
-t = THEMES[st.session_state.theme]
-
-# ─── Global CSS ─────────────────────────────────────────────────────────────
+# ─── Global CSS ───────────────────────────────────────────────────────────────
 st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* ── Reset & Base ── */
 html, body, [class*="css"] {{
     font-family: 'Inter', sans-serif;
+    color: {C['text']};
 }}
 .stApp {{
-    background:
-        {t['bg_overlay']}
-        {t['app_bg']};
-    color: {t['text']};
+    background: {C['app_bg']};
+    color: {C['text']};
 }}
-/* Hide Streamlit toolbar noise (keep native header visible) */
+
+/* ── Streamlit native header ── */
+[data-testid="stHeader"] {{
+    background: {C['sidebar_bg']} !important;
+    border-bottom: 1px solid {C['border']} !important;
+}}
+[data-testid="stHeader"] * {{ color: {C['text']} !important; }}
+
+/* ── Hide clutter ── */
 #MainMenu {{ visibility: hidden; }}
 footer    {{ visibility: hidden; }}
-[data-testid="stDeployButton"]    {{ display: none !important; }}
-[data-testid="stAppDeployButton"] {{ display: none !important; }}
-[data-testid="stHeaderActionElements"] {{ display: none !important; }}
-button[title="Deploy"] {{ display: none !important; }}
-[data-testid="stStatusWidget"]    {{ display: none !important; }}
-[data-testid="stToolbarActions"]  {{ display: none !important; }}
-.block-container {{ padding: 4.2rem 1.6rem 2rem; }}
+[data-testid="stDeployButton"],
+[data-testid="stAppDeployButton"],
+[data-testid="stHeaderActionElements"],
+button[title="Deploy"],
+[data-testid="stStatusWidget"],
+[data-testid="stToolbarActions"] {{ display: none !important; }}
+.block-container {{ padding: 4rem 1.8rem 2.5rem; }}
 
 /* ── Sidebar ── */
 [data-testid="stSidebar"] {{
-    background: {t['sidebar_bg']} !important;
-    border-right: 1px solid rgba(255,255,255,0.04) !important;
+    background: {C['sidebar_bg']} !important;
+    border-right: 1px solid {C['border']} !important;
 }}
-[data-testid="stSidebar"] * {{ color: {t['text']} !important; }}
+[data-testid="stSidebar"] * {{ color: {C['text']} !important; }}
 [data-testid="stSidebar"] > div:first-child {{
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
 }}
-[data-testid="stSidebar"] > div:first-child::-webkit-scrollbar {{
-    width: 0 !important;
-    height: 0 !important;
-}}
-[data-testid="stSidebar"] > div:first-child::-webkit-scrollbar-track {{
-    background: transparent !important;
-}}
-[data-testid="stSidebar"] > div:first-child::-webkit-scrollbar-thumb {{
-    background: transparent !important;
-}}
-
-/* Style Streamlit's native collapse arrow to look like a teal pill */
-[data-testid="stSidebarCollapsedControl"] {{ 
-    background: {t['panel_bg']} !important;
-    border: 1px solid {t['accent']} !important;
+[data-testid="stSidebar"] > div:first-child::-webkit-scrollbar {{ width: 0 !important; }}
+[data-testid="stSidebarCollapsedControl"] {{
+    background: {C['card_bg']} !important;
+    border: 1px solid {C['teal']} !important;
     border-left: none !important;
-    border-radius: 0 12px 12px 0 !important;
-    box-shadow: 0 4px 12px rgba(0,212,180,0.3) !important;
-    transition: all 0.2s ease !important;
+    border-radius: 0 10px 10px 0 !important;
+    box-shadow: 0 0 12px rgba(57,208,179,0.20) !important;
 }}
-[data-testid="stSidebarCollapsedControl"] svg {{
-    stroke: {t['accent']} !important;
-}}
+[data-testid="stSidebarCollapsedControl"] svg {{ stroke: {C['teal']} !important; }}
 
 /* ── Typography ── */
-h1, h2, h3, h4 {{ color: {t['text_head']} !important; font-weight: 700; }}
+h1, h2, h3, h4 {{ color: {C['text_head']} !important; font-weight: 700; }}
 
-/* ── Panels / Cards ── */
-.soc-panel {{
-    background: {t['panel_bg']};
-    border: 1px solid {t['panel_border']};
-    border-radius: 14px;
-    padding: 18px 20px 14px;
-    margin-bottom: 16px;
-    box-shadow: {t['panel_shadow']};
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+/* ── Sidebar spacing — 8px grid ── */
+section[data-testid="stSidebarContent"] {{
+    padding: 0 16px 24px !important;
 }}
-.soc-panel-title {{
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 1.4px;
-    text-transform: uppercase;
-    color: {t['text_dim']};
-    margin-bottom: 6px;
+[data-testid="stSidebar"] .stVerticalBlock {{
+    gap: 4px !important;
+}}
+[data-testid="stSidebar"] .stButton {{
+    margin: 0 !important;
+    padding: 0 !important;
+}}
+[data-testid="stSidebar"] [data-testid="element-container"] {{
+    margin: 0 !important;
+    padding: 0 !important;
+}}
+
+/* ── Sidebar all buttons – base ── */
+[data-testid="stSidebar"] .stButton > button {{
+    border-radius: 8px !important;
+    border: 1px solid {C['border']} !important;
+    background: {C['card_alt']} !important;
+    color: {C['text']} !important;
+    font-weight: 500 !important;
+    font-size: 0.84rem !important;
+    transition: all 0.18s ease !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    text-align: left !important;
+    padding: 9px 14px !important;
+}}
+[data-testid="stSidebar"] .stButton > button:hover {{
+    border-color: {C['teal']} !important;
+    background: {C['teal_bg']} !important;
+    color: {C['teal']} !important;
+}}
+
+/* Nav active state */
+.nav-active [data-testid="stSidebar"] .stButton > button,
+.nav-active .stButton > button {{
+    background: rgba(57,208,179,0.12) !important;
+    border-left: 3px solid {C['teal']} !important;
+    border-color: rgba(57,208,179,0.35) !important;
+    color: {C['teal']} !important;
+    border-radius: 0 8px 8px 0 !important;
+}}
+
+/* Start Monitor – green */
+.btn-start .stButton > button {{
+    border-color: rgba(63,185,80,0.35) !important;
+    background: rgba(63,185,80,0.09) !important;
+    color: {C['success']} !important;
+}}
+.btn-start .stButton > button:hover {{
+    border-color: {C['success']} !important;
+    background: rgba(63,185,80,0.16) !important;
+    box-shadow: 0 0 10px rgba(63,185,80,0.18) !important;
+    color: {C['success']} !important;
+}}
+
+/* Stop Monitor – red */
+.btn-stop .stButton > button {{
+    border-color: rgba(248,81,73,0.30) !important;
+    background: rgba(248,81,73,0.08) !important;
+    color: {C['critical']} !important;
+}}
+.btn-stop .stButton > button:hover {{
+    border-color: {C['critical']} !important;
+    background: rgba(248,81,73,0.14) !important;
+    box-shadow: 0 0 10px rgba(248,81,73,0.16) !important;
+    color: {C['critical']} !important;
+}}
+
+/* Clear Logs – amber */
+.btn-clear .stButton > button {{
+    border-color: rgba(210,153,34,0.30) !important;
+    background: rgba(210,153,34,0.08) !important;
+    color: {C['warning']} !important;
+}}
+.btn-clear .stButton > button:hover {{
+    border-color: {C['warning']} !important;
+    background: rgba(210,153,34,0.14) !important;
+    color: {C['warning']} !important;
+}}
+
+/* ── Download button ── */
+[data-testid="stDownloadButton"] > button {{
+    border-radius: 8px !important;
+    border: 1px solid {C['border']} !important;
+    background: {C['card_alt']} !important;
+    color: {C['text']} !important;
+    font-weight: 500 !important;
+    font-size: 0.84rem !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    transition: all 0.18s ease !important;
+    text-align: left !important;
+    padding: 9px 14px !important;
+}}
+[data-testid="stDownloadButton"] > button:hover {{
+    border-color: {C['teal']} !important;
+    background: {C['teal_bg']} !important;
+    color: {C['teal']} !important;
 }}
 
 /* ── KPI tiles ── */
@@ -176,256 +220,229 @@ h1, h2, h3, h4 {{ color: {t['text_head']} !important; font-weight: 700; }}
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 12px;
-    margin-bottom: 0;
+    margin-bottom: 14px;
 }}
 .kpi-tile {{
-    background: {t['panel_bg']};
-    border: 1px solid {t['panel_border']};
+    background: {C['card_bg']};
+    border: 1px solid {C['border']};
     border-radius: 12px;
-    padding: 16px 18px;
-    text-align: left;
+    padding: 18px 20px 16px;
     position: relative;
     overflow: hidden;
-    box-shadow: {t['panel_shadow']};
+    box-shadow: {C['shadow']};
 }}
 .kpi-tile::before {{
     content: '';
     position: absolute;
     top: 0; left: 0;
     width: 3px; height: 100%;
-    background: {t['accent']};
+    background: {C['teal']};
     border-radius: 12px 0 0 12px;
 }}
-.kpi-tile.danger::before {{ background: {t['danger']}; }}
-.kpi-tile.warning::before {{ background: {t['warning']}; }}
-.kpi-tile.success::before {{ background: {t['success']}; }}
+.kpi-tile.crit-tile {{
+    background: linear-gradient(140deg, {C['card_bg']} 60%, rgba(248,81,73,0.07));
+    border-color: rgba(248,81,73,0.28);
+}}
+.kpi-tile.crit-tile::before {{ background: {C['critical']}; }}
+.kpi-tile.warn-tile {{
+    background: linear-gradient(140deg, {C['card_bg']} 60%, rgba(210,153,34,0.07));
+    border-color: rgba(210,153,34,0.28);
+}}
+.kpi-tile.warn-tile::before {{ background: {C['warning']}; }}
+.kpi-tile.ok-tile::before {{ background: {C['success']}; }}
 .kpi-label {{
-    font-size: 0.72rem;
-    letter-spacing: 1.1px;
+    font-size: 0.63rem;
+    font-weight: 600;
+    letter-spacing: 1.6px;
     text-transform: uppercase;
-    color: {t['text_dim']};
-    margin-bottom: 4px;
+    color: {C['text_dim']};
+    margin-bottom: 10px;
 }}
 .kpi-value {{
-    font-size: 2rem;
-    font-weight: 700;
-    color: {t['metric_val']};
+    font-size: 2.7rem;
+    font-weight: 800;
+    color: {C['text_head']};
     line-height: 1;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     font-variant-numeric: tabular-nums;
+    letter-spacing: -1.5px;
 }}
-.kpi-tile.danger .kpi-value  {{ color: {t['danger']}; }}
-.kpi-tile.warning .kpi-value {{ color: {t['warning']}; }}
-.kpi-tile.success .kpi-value {{ color: {t['success']}; }}
+.kpi-tile.crit-tile .kpi-value {{ color: {C['critical']}; }}
+.kpi-tile.warn-tile .kpi-value  {{ color: {C['warning']}; }}
+.kpi-tile.ok-tile   .kpi-value  {{ color: {C['success']}; }}
 .kpi-sub {{
-    font-size: 0.75rem;
-    color: {t['text_dim']};
-}}
-
-/* ── Status badges ── */
-.badge {{
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 999px;
     font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    color: {C['text_dim']};
+    line-height: 1.4;
 }}
-.badge-critical {{ background: rgba(239,68,68,0.18);  color: {t['danger']};  border: 1px solid rgba(239,68,68,0.4); }}
-.badge-info     {{ background: rgba(0,212,180,0.12); color: {t['accent']};  border: 1px solid rgba(0,212,180,0.3); }}
-.badge-open     {{ background: rgba(245,158,11,0.15); color: {t['warning']}; border: 1px solid rgba(245,158,11,0.4); }}
-.badge-reviewed {{ background: rgba(34,197,94,0.12);  color: {t['success']};  border: 1px solid rgba(34,197,94,0.3); }}
 
-/* ── Status pill (header) ── */
+/* ── Status bar ── */
 .status-bar {{
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 16px;
-    background: {t['panel_bg']};
-    border: 1px solid {t['panel_border']};
+    padding: 10px 18px;
+    background: {C['card_bg']};
+    border: 1px solid {C['border']};
     border-radius: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
     font-size: 0.82rem;
 }}
 .status-dot {{
-    width: 9px; height: 9px;
+    width: 8px; height: 8px;
     border-radius: 50%;
-    display: inline-block;
     flex-shrink: 0;
+    display: inline-block;
 }}
-.status-dot.active  {{ background: {t['success']}; box-shadow: 0 0 6px {t['success']}; animation: pulse 1.6s ease-in-out infinite; }}
-.status-dot.stopped {{ background: {t['danger']};  }}
-@keyframes pulse {{ 0%,100% {{ opacity:1; }} 50% {{ opacity:.45; }} }}
+.status-dot.active {{
+    background: {C['success']};
+    box-shadow: 0 0 8px {C['success']};
+    animation: blink 1.6s ease-in-out infinite;
+}}
+.status-dot.stopped {{ background: {C['critical']}; opacity: 0.6; }}
+@keyframes blink {{ 0%,100% {{ opacity:1; }} 50% {{ opacity:0.35; }} }}
 
-/* ── Threat level meter ── */
-.threat-bar-wrap {{
-    background: {t['threat_track']};
-    border-radius: 99px;
-    height: 8px;
-    overflow: hidden;
-    margin: 6px 0 2px;
+/* ── SOC Panel ── */
+.soc-panel {{
+    background: {C['card_bg']};
+    border: 1px solid {C['border']};
+    border-radius: 12px;
+    padding: 18px 22px 16px;
+    margin-bottom: 14px;
+    box-shadow: {C['shadow']};
 }}
-.threat-bar-fill {{
+.panel-label {{
+    font-size: 0.63rem;
+    font-weight: 600;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: {C['text_dim']};
+    margin-bottom: 10px;
+}}
+
+/* ── Threat bar ── */
+.threat-track {{
+    background: {C['border_dim']};
+    border-radius: 99px;
+    height: 6px;
+    overflow: hidden;
+    margin: 8px 0 4px;
+}}
+.threat-fill {{
     height: 100%;
     border-radius: 99px;
     transition: width 0.6s ease;
 }}
 
-/* ── Event table rows ── */
-.event-row {{ border-bottom: 1px solid {t['panel_border']}; font-size: 0.8rem; }}
-.event-row.critical {{ background: {t['row_critical']}; }}
+/* ── Monitoring stats ── */
+.stats-grid {{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}}
+.stat-cell {{
+    padding: 12px 20px;
+    border-right: 1px solid {C['border_dim']};
+}}
+.stat-cell:last-child {{ border-right: none; }}
+.stat-label {{
+    font-size: 0.63rem;
+    color: {C['text_dim']};
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}}
+.stat-value {{
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: {C['text_head']};
+    font-variant-numeric: tabular-nums;
+}}
 
 /* ── Log feed ── */
 .stTextArea textarea {{
-    background: {t['textarea_bg']} !important;
-    color: {t['textarea_color']} !important;
-    border: 1px solid {t['panel_border']} !important;
+    background: {C['card_alt']} !important;
+    color: {C['teal']} !important;
+    border: 1px solid {C['border']} !important;
     border-radius: 10px !important;
     font-family: 'JetBrains Mono', monospace !important;
     font-size: 0.78rem !important;
 }}
 
-/* ── Buttons ── */
-.stButton > button {{
-    border-radius: 8px;
-    border: 1px solid {t['panel_border']};
-    background: {t['panel_bg']};
-    color: {t['text_head']};
-    font-weight: 600;
-    font-size: 0.82rem;
-    transition: all 0.2s ease;
-    width: 100%;
-}}
-.stButton > button:hover {{
-    border-color: {t['accent']};
-    box-shadow: {t['hover_glow']};
-    transform: translateY(-1px);
-}}
-
 /* ── Selectbox / text input ── */
 .stSelectbox > div > div,
 .stTextInput > div > div > input {{
-    background: {t['panel_bg']} !important;
-    color: {t['text']} !important;
-    border-color: {t['panel_border']} !important;
+    background: {C['card_alt']} !important;
+    color: {C['text']} !important;
+    border-color: {C['border']} !important;
     border-radius: 8px !important;
 }}
 
-/* ── Metrics widget ── */
-[data-testid="stMetricValue"] {{ color: {t['metric_val']} !important; font-weight: 700; }}
-[data-testid="stMetricLabel"] {{ color: {t['text_dim']} !important; font-size: 0.78rem !important; }}
-
-/* ── Logo / header bar ── */
-.top-header {{
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 6px;
-}}
-.logo-icon {{
-    font-size: 2.1rem;
-    filter: drop-shadow({t['logo_glow']});
-}}
-.product-name {{
-    font-size: 1.55rem;
-    font-weight: 700;
-    color: {t['text_head']};
-    line-height: 1;
-    letter-spacing: -0.3px;
-}}
-.product-sub {{
-    font-size: 0.73rem;
-    color: {t['text_dim']};
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    margin-top: 2px;
-}}
-.divider {{ height:1px; background: linear-gradient(90deg, transparent, {t['accent']}55, transparent); margin: 8px 0 16px; }}
-
-/* ── Awareness section ── */
-.aware-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }}
-.aware-card {{
-    background: {t['panel_bg']};
-    border: 1px solid {t['panel_border']};
-    border-radius: 12px;
-    padding: 16px 18px;
-    box-shadow: {t['panel_shadow']};
-}}
-.aware-card h4 {{ margin: 0 0 10px; font-size: 0.92rem; }}
-.aware-card ul {{ margin: 0; padding-left: 16px; }}
-.aware-card ul li {{ margin-bottom: 7px; font-size: 0.82rem; color: {t['text']}; line-height: 1.5; }}
-.ethics-card {{
-    background: {t['panel_bg']};
-    border: 1px solid rgba(245,158,11,0.35);
-    border-left: 3px solid {t['warning']};
-    border-radius: 12px;
-    padding: 16px 20px;
-    font-size: 0.83rem;
-    line-height: 1.6;
-    color: {t['text']};
-}}
-
-/* ── Sidebar nav links ── */
-.nav-item {{
-    display: block;
-    padding: 9px 14px;
-    border-radius: 8px;
-    font-size: 0.84rem;
-    font-weight: 500;
-    cursor: pointer;
-    margin-bottom: 2px;
-    transition: background 0.2s;
-}}
-.nav-item.active {{
-    background: rgba(0,212,180,0.15);
-    border-left: 3px solid {t['accent']};
-    color: {t['accent']} !important;
-}}
-
-/* ── Dataframe override ── */
+/* ── Dataframe ── */
 [data-testid="stDataFrame"] {{
-    border: 1px solid {t['panel_border']};
+    border: 1px solid {C['border']};
     border-radius: 10px;
     overflow: hidden;
 }}
 
-/* ── Header theme toggle button (circular icon pill, top-right) ── */
-/* Target by button key rendered as data-testid on the container */
-button[kind="secondary"][data-testid="stBaseButton-secondary"]#theme_btn,
-button[key="theme_btn"],
-[data-testid="stButton"] button {{}}
-
-/* Reliable: style the last column's button in the header row */
-.stMainBlockContainer .stColumns .stColumn:last-child .stButton > button {{
-    width: 42px !important;
-    height: 42px !important;
-    min-width: 42px !important;
-    padding: 0 !important;
-    border-radius: 50% !important;
-    font-size: 1.2rem !important;
-    background: {t['panel_bg']} !important;
-    border: 1px solid {t['panel_border']} !important;
-    color: {t['text_head']} !important;
-    box-shadow: inset 0 0 0 1px {t['panel_border']};
-    transition: all 0.25s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    line-height: 1 !important;
-    margin-top: 4px !important;
+/* ── Brand / header ── */
+.top-header {{
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 4px;
 }}
-.stMainBlockContainer .stColumns .stColumn:last-child .stButton > button:hover {{
-    border-color: {t['accent']} !important;
-    box-shadow: 0 0 18px rgba(0,212,180,0.40) !important;
-    transform: rotate(20deg) scale(1.1) !important;
-    background: rgba(0,212,180,0.13) !important;
+.brand-icon {{
+    font-size: 2rem;
+    filter: drop-shadow(0 0 18px rgba(57,208,179,0.55));
+}}
+.brand-name {{
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: {C['text_head']};
+    letter-spacing: -0.5px;
+    line-height: 1;
+}}
+.brand-sub {{
+    font-size: 0.65rem;
+    color: {C['text_dim']};
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    margin-top: 3px;
+}}
+.soc-divider {{
+    height: 1px;
+    background: linear-gradient(90deg, transparent, {C['teal']}44, transparent);
+    margin: 8px 0 16px;
+}}
+
+/* ── Awareness cards ── */
+.aware-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }}
+.aware-card {{
+    background: {C['card_bg']};
+    border: 1px solid {C['border']};
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: {C['shadow_sm']};
+}}
+.aware-card h4 {{ margin: 0 0 10px; font-size: 0.92rem; color: {C['text_head']}; }}
+.aware-card ul {{ margin: 0; padding-left: 16px; }}
+.aware-card ul li {{ margin-bottom: 7px; font-size: 0.82rem; color: {C['text']}; line-height: 1.5; }}
+.ethics-card {{
+    background: {C['card_bg']};
+    border: 1px solid rgba(210,153,34,0.28);
+    border-left: 3px solid {C['warning']};
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 0.83rem;
+    line-height: 1.6;
+    color: {C['text']};
 }}
 </style>
 """, unsafe_allow_html=True)
 
-# ─── Helpers ────────────────────────────────────────────────────────────────
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
 def read_logs() -> str:
     if os.path.exists(kl_core.LOG_FILE):
         with open(kl_core.LOG_FILE, "r") as f:
@@ -433,53 +450,34 @@ def read_logs() -> str:
     return ""
 
 
-def chart_layout(title: str = "") -> dict:
-    """Return a Plotly layout dict themed to match the active dark/light mode."""
-    is_dark = st.session_state.theme == "dark"
-    if is_dark:
-        paper_bg  = "rgba(0,0,0,0)"          # transparent – panel_bg shows through
-        plot_bg   = "rgba(10,20,40,0.60)"
-        grid_col  = "rgba(255,255,255,0.07)"
-        axis_col  = "#5a7099"
-        font_col  = "#cdd9f5"
-        zero_col  = "rgba(255,255,255,0.12)"
-    else:
-        paper_bg  = "rgba(0,0,0,0)"          # transparent – white panel_bg shows
-        plot_bg   = "#FFFFFF"
-        grid_col  = "#DDE4EE"                 # soft gray-blue gridlines
-        axis_col  = "#8897A8"                 # muted secondary text
-        font_col  = "#253040"                 # dark navy-gray labels
-        zero_col  = "#BEC8D4"
-
+def chart_layout(height: int = 220) -> dict:
     return dict(
-        paper_bgcolor=paper_bg,
-        plot_bgcolor=plot_bg,
-        font=dict(family="Inter, sans-serif", color=font_col, size=11),
-        title=dict(text=title, font=dict(size=12, color=font_col)) if title else {},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor=C["chart_bg"],
+        font=dict(family="Inter, sans-serif", color=C["text_dim"], size=11),
         margin=dict(l=8, r=8, t=8, b=8),
         xaxis=dict(
-            gridcolor=grid_col,
-            linecolor=axis_col,
-            tickcolor=axis_col,
-            tickfont=dict(color=font_col, size=10),
-            zerolinecolor=zero_col,
+            gridcolor=C["grid"],
+            linecolor=C["border"],
+            tickcolor=C["border"],
+            tickfont=dict(color=C["text_dim"], size=10),
+            zerolinecolor=C["border"],
             showgrid=True,
         ),
         yaxis=dict(
-            gridcolor=grid_col,
-            linecolor=axis_col,
-            tickcolor=axis_col,
-            tickfont=dict(color=font_col, size=10),
-            zerolinecolor=zero_col,
+            gridcolor=C["grid"],
+            linecolor=C["border"],
+            tickcolor=C["border"],
+            tickfont=dict(color=C["text_dim"], size=10),
+            zerolinecolor=C["border"],
             showgrid=True,
         ),
         showlegend=False,
-        height=220,
+        height=height,
     )
 
 
-def hex_to_rgba(hex_color: str, alpha: float = 0.12) -> str:
-    """Convert a #RRGGBB hex string to rgba(r,g,b,alpha) for Plotly fillcolor."""
+def hex_to_rgba(hex_color: str, alpha: float = 0.15) -> str:
     h = hex_color.lstrip("#")
     r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
     return f"rgba({r},{g},{b},{alpha})"
@@ -521,17 +519,16 @@ def build_rows(raw: str) -> list[dict]:
 
 
 def threat_level(rows: list[dict]) -> tuple[str, int, str]:
-    """Return (label, pct, color) based on critical ratio."""
     total = len(rows)
     crits = sum(1 for r in rows if r["severity"] == "Critical")
     if total == 0:
-        return "No Data", 0, "#5a7099"
+        return "No Data", 0, C["text_dim"]
     ratio = crits / total
     if ratio >= 0.4:
-        return "HIGH", int(ratio * 100), t["danger"]
+        return "HIGH", int(ratio * 100), C["critical"]
     if ratio >= 0.15:
-        return "MEDIUM", int(ratio * 100), t["warning"]
-    return "LOW", max(5, int(ratio * 100)), t["success"]
+        return "MEDIUM", int(ratio * 100), C["warning"]
+    return "LOW", max(4, int(ratio * 100)), C["success"]
 
 
 def session_duration() -> str:
@@ -543,42 +540,31 @@ def session_duration() -> str:
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
-# ─── Page header helper ─────────────────────────────────────────────────────
 def render_page_header(icon: str, title: str, subtitle: str):
-    """Header: [logo + title] | [theme toggle]"""
-    is_dark = st.session_state.theme == "dark"
-    theme_icon = "🌙" if is_dark else "☀️"
-    col_title, col_theme = st.columns([11, 1])
-
-    with col_title:
-        st.markdown(f"""
-        <div class="top-header">
-            <span class="logo-icon">{icon}</span>
-            <div>
-                <div class="product-name">{title}</div>
-                <div class="product-sub">{subtitle}</div>
-            </div>
+    st.markdown(f"""
+    <div class="top-header">
+        <span class="brand-icon">{icon}</span>
+        <div>
+            <div class="brand-name">{title}</div>
+            <div class="brand-sub">{subtitle}</div>
         </div>
-        <div class="divider"></div>
-        """, unsafe_allow_html=True)
-
-    with col_theme:
-        if st.button(theme_icon, key="theme_btn", help="Toggle Dark ↔ Light mode"):
-            st.session_state.theme = "light" if is_dark else "dark"
-            st.rerun()
-
-
-# ─── Sidebar ─────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("""
-    <div style='text-align:center; padding: 10px 0 18px;'>
-        <div style='font-size:2.4rem; filter:drop-shadow(0 0 18px rgba(0,212,180,0.6))'>🛡️</div>
-        <div style='font-size:1.1rem; font-weight:700; letter-spacing:-0.2px; margin-top:4px;'>SecureWatch</div>
-        <div style='font-size:0.68rem; letter-spacing:1.4px; text-transform:uppercase; opacity:0.5; margin-top:2px;'>SOC Platform v1.0</div>
     </div>
+    <div class="soc-divider"></div>
     """, unsafe_allow_html=True)
 
-    st.markdown("**NAVIGATION**")
+
+# ─── Sidebar ──────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown(f"""
+    <div style='text-align:center; padding:24px 0 16px;'>
+        <div style='font-size:2.1rem; filter:drop-shadow(0 0 20px rgba(57,208,179,0.55));'>🛡️</div>
+        <div style='font-size:1.05rem; font-weight:800; letter-spacing:-0.3px; margin-top:8px; color:{C['text_head']};'>SecureWatch</div>
+        <div style='font-size:0.60rem; letter-spacing:2.4px; text-transform:uppercase; color:{C['text_dim']}; margin-top:4px;'>SOC Platform v1.0</div>
+    </div>
+    <div style='height:1px; background:linear-gradient(90deg,transparent,{C['teal']}44,transparent); margin:0 0 16px;'></div>
+    <div style='font-size:0.60rem; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:{C['text_dim']}; margin-bottom:8px;'>Navigation</div>
+    """, unsafe_allow_html=True)
+
     pages = {
         "dashboard":  "📊  Dashboard",
         "events":     "📋  Event Queue",
@@ -586,31 +572,42 @@ with st.sidebar:
         "awareness":  "⚠️  Threat Awareness",
     }
     for key, label in pages.items():
-        active_cls = "active" if st.session_state.page == key else ""
+        wrap_cls = "nav-active" if st.session_state.page == key else "nav-item"
+        st.markdown(f'<div class="{wrap_cls}">', unsafe_allow_html=True)
         if st.button(label, key=f"nav_{key}"):
             st.session_state.page = key
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("**AGENT CONTROLS**")
+    st.markdown(f"""
+    <div style='height:1px; background:{C['border_dim']}; margin:16px 0;'></div>
+    <div style='font-size:0.60rem; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:{C['text_dim']}; margin-bottom:8px;'>Agent Controls</div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="btn-start">', unsafe_allow_html=True)
     if st.button("▶  Start Monitor"):
         if not st.session_state.running:
             threading.Thread(target=kl_core.start_keylogger, daemon=True).start()
             st.session_state.running = True
             st.session_state.session_start = datetime.now()
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown('<div class="btn-stop">', unsafe_allow_html=True)
     if st.button("■  Stop Monitor"):
         kl_core.stop_keylogger()
         st.session_state.running = False
         st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown('<div class="btn-clear">', unsafe_allow_html=True)
     if st.button("🗑  Clear Logs"):
         kl_core.clear_logs()
         st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("---")
-    # Log export
+    st.markdown(f'<div style="height:1px; background:{C["border_dim"]}; margin:16px 0 8px;"></div>', unsafe_allow_html=True)
+
     if os.path.exists(kl_core.LOG_FILE):
         with open(kl_core.LOG_FILE, "rb") as f:
             st.download_button(
@@ -622,97 +619,108 @@ with st.sidebar:
             )
 
     st.markdown(f"""
-    <div style='font-size:0.68rem; color:{t['text_dim']}; margin-top:20px; line-height:1.7;'>
-        <b>SecureWatch SOC</b><br>
-        Educational Use Only<br>
+    <div style='font-size:0.62rem; color:{C['text_dim']}; margin-top:16px; line-height:2.0;'>
+        <strong style='color:{C['text_dim']};'>SecureWatch SOC</strong><br>
+        Research &amp; Training Environment<br>
         Keystroke Threat Monitor<br>
-        © 2026 — Lab Environment
+        © 2026 — Lab Use Only
     </div>
     """, unsafe_allow_html=True)
 
 
-# ─── Load data (all pages share this) ───────────────────────────────────────
+# ─── Load data ────────────────────────────────────────────────────────────────
 raw_logs  = read_logs()
 all_rows  = build_rows(raw_logs)
 sev_count = Counter(r["severity"] for r in all_rows)
 sta_count = Counter(r["status"]   for r in all_rows)
 now_ts    = datetime.now()
-last_24h  = sum(1 for r in all_rows if r["timestamp"] and r["timestamp"] >= now_ts - timedelta(hours=24))
+last_24h  = sum(
+    1 for r in all_rows
+    if r["timestamp"] and r["timestamp"] >= now_ts - timedelta(hours=24)
+)
 thr_label, thr_pct, thr_color = threat_level(all_rows)
+hour_counter = Counter()
+for row in all_rows:
+    if row["timestamp"]:
+        hour_counter[row["timestamp"].strftime("%m-%d %H:00")] += 1
 
 
-
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 #  PAGE: DASHBOARD
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 if st.session_state.page == "dashboard":
 
-    # Header
-    status_dot  = "active" if st.session_state.running else "stopped"
-    status_text = "Active Monitoring" if st.session_state.running else "Monitoring Stopped"
-    render_page_header("🛡️", "SecureWatch SOC", "Keystroke Threat Intelligence Platform")
+    render_page_header("🛡️", "SecureWatch SOC", "Threat Intelligence Console")
+
+    dot_cls  = "active" if st.session_state.running else "stopped"
+    dot_text = "Active Monitoring" if st.session_state.running else "Monitoring Stopped"
     st.markdown(f"""
     <div class="status-bar">
-        <span class="status-dot {status_dot}"></span>
-        <span style="font-weight:600;">Agent Status:</span>&nbsp;{status_text}
-        &nbsp;|&nbsp; <span style="color:{t['text_dim']}">Session:</span>&nbsp;{session_duration()}
-        &nbsp;|&nbsp; <span style="color:{t['text_dim']}">Log File:</span>&nbsp;{kl_core.LOG_FILE}
+        <span class="status-dot {dot_cls}"></span>
+        <span style="font-weight:600; color:{C['text_head']};">Agent Status:</span>
+        <span style="color:{C['success'] if st.session_state.running else C['critical']};">{dot_text}</span>
+        <span style="color:{C['border']}; margin:0 4px;">|</span>
+        <span style="color:{C['text_dim']};">Session:</span>&nbsp;<span>{session_duration()}</span>
+        <span style="color:{C['border']}; margin:0 4px;">|</span>
+        <span style="color:{C['text_dim']};">Log File:</span>&nbsp;<span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:{C['teal']};">{kl_core.LOG_FILE}</span>
     </div>
     """, unsafe_allow_html=True)
 
-    # KPI Tiles
     st.markdown(f"""
     <div class="kpi-grid">
         <div class="kpi-tile">
-            <div class="kpi-label">Total Events</div>
+            <div class="kpi-label">Captured Events</div>
             <div class="kpi-value">{len(all_rows)}</div>
-            <div class="kpi-sub">all captured keystrokes</div>
+            <div class="kpi-sub">total keystroke entries logged</div>
         </div>
-        <div class="kpi-tile danger">
+        <div class="kpi-tile crit-tile">
             <div class="kpi-label">Critical Alerts</div>
             <div class="kpi-value">{sev_count.get('Critical', 0)}</div>
-            <div class="kpi-sub">sensitive inputs detected</div>
+            <div class="kpi-sub">sensitive inputs flagged</div>
         </div>
-        <div class="kpi-tile warning">
-            <div class="kpi-label">Open / Unreviewed</div>
+        <div class="kpi-tile warn-tile">
+            <div class="kpi-label">Pending Triage</div>
             <div class="kpi-value">{sta_count.get('Open', 0)}</div>
-            <div class="kpi-sub">require analyst triage</div>
+            <div class="kpi-sub">cases require analyst review</div>
         </div>
-        <div class="kpi-tile success">
-            <div class="kpi-label">Last 24 h</div>
+        <div class="kpi-tile ok-tile">
+            <div class="kpi-label">24-Hour Window</div>
             <div class="kpi-value">{last_24h}</div>
             <div class="kpi-sub">events in rolling window</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # Row 2: Threat Meter + Charts
-    left_col, right_col = st.columns([1, 2])
+    left_col, right_col = st.columns([1, 2.2])
 
     with left_col:
         st.markdown(f"""
-        <div class="soc-panel">
-            <div class="soc-panel-title">Threat Level</div>
-            <div style="font-size:2.2rem; font-weight:800; color:{thr_color}; margin: 8px 0 4px;">
+        <div class="soc-panel" style="height:100%;">
+            <div class="panel-label">Threat Level</div>
+            <div style="font-size:2.4rem; font-weight:900; color:{thr_color}; margin:6px 0 2px; letter-spacing:-1px;">
                 {thr_label}
             </div>
-            <div class="threat-bar-wrap">
-                <div class="threat-bar-fill" style="width:{thr_pct}%; background:{thr_color};"></div>
+            <div class="threat-track">
+                <div class="threat-fill" style="width:{thr_pct}%; background:{thr_color};"></div>
             </div>
-            <div style="font-size:0.72rem; color:{t['text_dim']}; margin-top:4px;">
-                {thr_pct}% of events are critical
+            <div style="font-size:0.70rem; color:{C['text_dim']}; margin-top:5px;">
+                {thr_pct}% critical detection rate
             </div>
-            <div style="margin-top:16px;">
-                <div style="font-size:0.72rem; color:{t['text_dim']}; margin-bottom:4px; text-transform:uppercase; letter-spacing:1px;">Breakdown</div>
-                <div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:6px;">
-                    <span style="color:{t['danger']};">⬤ Critical</span>
-                    <span style="font-weight:600;">{sev_count.get('Critical', 0)}</span>
+            <div style="margin-top:18px; padding-top:14px; border-top:1px solid {C['border_dim']};">
+                <div style="font-size:0.60rem; color:{C['text_dim']}; margin-bottom:8px; text-transform:uppercase; letter-spacing:1.4px; font-weight:600;">Breakdown</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem; margin-bottom:8px;">
+                    <span style="display:flex;align-items:center;gap:7px;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:{C['critical']};display:inline-block;box-shadow:0 0 6px {C['critical']};"></span>
+                        Critical
+                    </span>
+                    <span style="font-weight:700; color:{C['critical']};">{sev_count.get('Critical', 0)}</span>
                 </div>
-                <div style="display:flex; justify-content:space-between; font-size:0.82rem;">
-                    <span style="color:{t['accent']};">⬤ Info</span>
-                    <span style="font-weight:600;">{sev_count.get('Info', 0)}</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
+                    <span style="display:flex;align-items:center;gap:7px;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:{C['info']};display:inline-block;"></span>
+                        Info
+                    </span>
+                    <span style="font-weight:700; color:{C['info']};">{sev_count.get('Info', 0)}</span>
                 </div>
             </div>
         </div>
@@ -720,43 +728,38 @@ if st.session_state.page == "dashboard":
 
     with right_col:
         st.markdown('<div class="soc-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="soc-panel-title">Event Trend — Hourly Activity</div>', unsafe_allow_html=True)
-        hour_counter = Counter()
-        for row in all_rows:
-            if row["timestamp"]:
-                hour_counter[row["timestamp"].strftime("%m-%d %H:00")] += 1
+        st.markdown('<div class="panel-label">Keystroke Activity — Hourly</div>', unsafe_allow_html=True)
         trend_data = dict(sorted(hour_counter.items()))
         if trend_data:
             hours  = list(trend_data.keys())
             counts = list(trend_data.values())
-            fig_trend = go.Figure(
-                go.Scatter(
-                    x=hours, y=counts,
-                    mode="lines+markers",
-                    line=dict(color=t["chart_color"], width=2.5, shape="spline", smoothing=1.1),
-                    marker=dict(size=5, color=t["chart_color"]),
-                    fill="tozeroy",
-                    fillcolor=hex_to_rgba(t["chart_color"], 0.12),
-                    hovertemplate="%{x}<br><b>%{y} events</b><extra></extra>",
-                )
-            )
-            fig_trend.update_layout(**chart_layout())
-            st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
+            fig = go.Figure(go.Scatter(
+                x=hours, y=counts,
+                mode="lines+markers",
+                line=dict(color=C["teal"], width=2.5, shape="spline", smoothing=1.1),
+                marker=dict(size=5, color=C["teal"], line=dict(width=1.5, color=C["card_bg"])),
+                fill="tozeroy",
+                fillcolor=hex_to_rgba(C["teal"], 0.10),
+                hovertemplate="<b>%{x}</b><br>%{y} events<extra></extra>",
+            ))
+            fig.update_layout(**chart_layout(240))
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
         else:
-            st.info("No timestamped events yet — start the monitor and press Enter to flush lines.")
+            st.info("No timestamped events yet — start the monitor and press Enter to log a line.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Row 3: Severity bar + Status breakdown
     col_a, col_b = st.columns(2)
+
     with col_a:
         st.markdown('<div class="soc-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="soc-panel-title">Severity Distribution</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-label">Severity Breakdown</div>', unsafe_allow_html=True)
         fig_sev = go.Figure(go.Bar(
             x=["Critical", "Info"],
             y=[sev_count.get("Critical", 0), sev_count.get("Info", 0)],
-            marker_color=[t["danger"], t["chart_color"]],
+            marker_color=[C["critical"], C["info"]],
             marker_line_width=0,
-            hovertemplate="%{x}: <b>%{y}</b><extra></extra>",
+            width=0.45,
+            hovertemplate="<b>%{x}</b>: %{y}<extra></extra>",
         ))
         fig_sev.update_layout(**chart_layout())
         st.plotly_chart(fig_sev, use_container_width=True, config={"displayModeBar": False})
@@ -764,44 +767,52 @@ if st.session_state.page == "dashboard":
 
     with col_b:
         st.markdown('<div class="soc-panel">', unsafe_allow_html=True)
-        st.markdown('<div class="soc-panel-title">Triage Status Summary</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-label">Case Status Overview</div>', unsafe_allow_html=True)
         fig_sta = go.Figure(go.Bar(
             x=["Open", "Reviewed"],
             y=[sta_count.get("Open", 0), sta_count.get("Reviewed", 0)],
-            marker_color=[t["warning"], t["success"]],
+            marker_color=[C["warning"], C["success"]],
             marker_line_width=0,
-            hovertemplate="%{x}: <b>%{y}</b><extra></extra>",
+            width=0.45,
+            hovertemplate="<b>%{x}</b>: %{y}<extra></extra>",
         ))
         fig_sta.update_layout(**chart_layout())
         st.plotly_chart(fig_sta, use_container_width=True, config={"displayModeBar": False})
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # Monitoring stats strip
     st.markdown(f"""
-    <div class="soc-panel" style="padding:12px 20px;">
-        <div class="soc-panel-title">Monitoring Stats</div>
-        <div style="display:flex; gap:40px; margin-top:8px; font-size:0.85rem;">
-            <div><span style="color:{t['text_dim']};">Total Log Entries</span><br>
-                 <strong style="font-size:1.2rem;">{len([l for l in raw_logs.splitlines() if l.strip()])}</strong></div>
-            <div><span style="color:{t['text_dim']};">Log File Size</span><br>
-                 <strong style="font-size:1.2rem;">{len(raw_logs.encode())} B</strong></div>
-            <div><span style="color:{t['text_dim']};">Unique Hours Active</span><br>
-                 <strong style="font-size:1.2rem;">{len(hour_counter)}</strong></div>
-            <div><span style="color:{t['text_dim']};">Session Timer</span><br>
-                 <strong style="font-size:1.2rem;">{session_duration()}</strong></div>
+    <div class="soc-panel" style="padding:14px 0;">
+        <div class="panel-label" style="padding:0 22px 10px;">Monitoring Stats</div>
+        <div class="stats-grid">
+            <div class="stat-cell">
+                <div class="stat-label">Log Entries</div>
+                <div class="stat-value">{len([l for l in raw_logs.splitlines() if l.strip()])}</div>
+            </div>
+            <div class="stat-cell">
+                <div class="stat-label">File Size</div>
+                <div class="stat-value">{len(raw_logs.encode())} B</div>
+            </div>
+            <div class="stat-cell">
+                <div class="stat-label">Active Hours</div>
+                <div class="stat-value">{len(hour_counter)}</div>
+            </div>
+            <div class="stat-cell">
+                <div class="stat-label">Session Duration</div>
+                <div class="stat-value">{session_duration()}</div>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 #  PAGE: EVENT QUEUE
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "events":
     render_page_header("📋", "Event Queue", "Analyst Triage View — All Captured Events")
 
     st.markdown('<div class="soc-panel">', unsafe_allow_html=True)
-    st.markdown('<div class="soc-panel-title">Filters</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-label">Filters</div>', unsafe_allow_html=True)
 
     f1, f2, f3 = st.columns([1, 1, 2])
     time_flt = f1.selectbox("Time Range", ["All", "Last 24 h", "Last 7 d"], label_visibility="visible")
@@ -819,9 +830,12 @@ elif st.session_state.page == "events":
         q = srch_flt.strip().lower()
         filtered = [r for r in filtered if q in r["details"].lower()]
 
-    st.markdown(f"<div style='font-size:0.8rem; color:{t['text_dim']}; margin:10px 0 4px;'>"
-                f"Showing <b>{len(filtered)}</b> of <b>{len(all_rows)}</b> events</div>",
-                unsafe_allow_html=True)
+    st.markdown(
+        f"<div style='font-size:0.78rem; color:{C['text_dim']}; margin:10px 0 6px;'>"
+        f"Showing <b style='color:{C['text']};'>{len(filtered)}</b> of "
+        f"<b style='color:{C['text']};'>{len(all_rows)}</b> events</div>",
+        unsafe_allow_html=True,
+    )
 
     if filtered:
         display = [{
@@ -840,29 +854,29 @@ elif st.session_state.page == "events":
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 #  PAGE: RAW LOG FEED
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "logs":
     render_page_header("📄", "Raw Log Feed", "Live Keystroke Capture Stream — Sensitive Data Masked")
 
     masked = mask_sensitive(raw_logs)
-    st.text_area("Live Log Stream", masked or "(No events captured yet)", height=480)
+    st.text_area("Live Log Stream", masked or "(No events captured yet — start the monitor)", height=500)
 
     if st.session_state.running:
         time.sleep(2)
         st.rerun()
 
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 #  PAGE: THREAT AWARENESS
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.page == "awareness":
     render_page_header("⚠️", "Threat Awareness", "Cybersecurity Education & Responsible Disclosure")
 
     st.markdown(f"""
     <div style="text-align:center; margin-bottom:20px;">
-        <span style="font-size:1.1rem; font-weight:600; color:{t['text_head']};">
+        <span style="font-size:1.05rem; font-weight:600; color:{C['text_head']};">
             Understanding Keylogger Threats in Modern Environments
         </span>
     </div>
@@ -912,17 +926,17 @@ elif st.session_state.page == "awareness":
     </div>
     <div class="ethics-card">
         <strong>⚖️ Legal & Ethical Responsibility</strong><br><br>
-        This project is developed strictly for academic research, cybersecurity awareness training, and controlled 
-        lab environments. Deploying a keylogger on a system without the explicit, informed consent of its owner 
-        is a criminal offence in most jurisdictions — including the Indian IT Act 2000 (Section 43 / 66), 
+        This project is developed strictly for academic research, cybersecurity awareness training, and controlled
+        lab environments. Deploying a keylogger on a system without the explicit, informed consent of its owner
+        is a criminal offence in most jurisdictions — including the Indian IT Act 2000 (Section 43 / 66),
         the U.S. Computer Fraud and Abuse Act, and the EU General Data Protection Regulation.<br><br>
-        Always operate within authorised boundaries. Document your defensive intent, obtain written approval, 
+        Always operate within authorised boundaries. Document your defensive intent, obtain written approval,
         and handle all captured data with the same care expected of a licensed security professional.
     </div>
     """, unsafe_allow_html=True)
 
 
-# ─── Auto-refresh while monitoring (all pages) ──────────────────────────────
+# ─── Auto-refresh while monitoring (all pages) ────────────────────────────────
 if st.session_state.running and st.session_state.page != "logs":
     time.sleep(3)
     st.rerun()
